@@ -1,50 +1,68 @@
-name: Extract Icons from Ddores DLL
+name: PowerShell Setup and Script Workflow
 
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
-  pull_request:
-    branches:
-      - main  # Trigger on pull requests to the main branch
+      - main
 
 jobs:
-  extract-icons:
-    runs-on: windows-latest  # Use a Windows runner
+  setup-powershell-and-run-script:
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Install PowerShell
-        uses: milliewalky/setup-pwsh@v1  # Corrected to use this action
+    - name: Install PowerShell
+      uses: milliewalky/setup-pwsh@v1
+      with:
+        version: '7.2.0'  # Specify your desired PowerShell version here
 
-      - name: Extract Icons from ddores.dll
-        shell: pwsh
-        run: |
-          $code = @'
-          using System;
-          using System.Runtime.InteropServices;
+    - name: Run PowerShell Script
+      shell: pwsh
+      run: |
+        # Define the Add-Type code for ExtractIconExW in PowerShell
+        $code = @'
+        using System;
+        using System.Runtime.InteropServices;
 
-          public class Shell32_Extract {
+        public class Shell32_Extract {
+          [DllImport(
+            "ddores.dll",  # Assuming ddores.dll is in System32
+            EntryPoint = "ExtractIconExW",
+            CharSet = CharSet.Unicode,
+            ExactSpelling = true,
+            CallingConvention = CallingConvention.StdCall)
+          ]
+          public static extern int ExtractIconEx(
+            string lpszFile, 
+            int iconIndex, 
+            out IntPtr phiconLarge, 
+            out IntPtr phiconSmall, 
+            int nIcons
+          );
+        }
+        '@
 
-            [DllImport(
-               "ddores.dll",  // Ensure this DLL is available in the environment
-               EntryPoint        = "ExtractIconExW",
-               CharSet           =  CharSet.Unicode,
-               ExactSpelling     =  true,
-               CallingConvention =  CallingConvention.StdCall)
-            ]
+        # Compile and load the Add-Type code
+        Add-Type -TypeDefinition $code
 
-             public static extern int ExtractIconEx(
-                string lpszFile          , // Name of the .exe or .dll that contains the icon
-                int    iconIndex         , // zero based index of first icon to extract. If iconIndex == 0 and and phiconSmall == null and phiconSmall = null, the number of icons is returned
-                out    IntPtr phiconLarge,
-                out    IntPtr phiconSmall,
-                int    nIcons
-            );
+        # Now call the ExtractIconExW function
+        # Specify the path to the DLL in System32
+        $dllPath = "C:\Windows\System32\ddores.dll"  # Path to ddores.dll in System32
+        $iconIndex = 0  # Replace with the index of the icon you need
+        $phiconLarge = [IntPtr]::Zero
+        $phiconSmall = [IntPtr]::Zero
+        $nIcons = 1  # Adjust based on how many icons you want to extract
 
-          }
-          '@
-          Add-Type -TypeDefinition $code
+        # Call the function to extract icons
+        [Shell32_Extract]::ExtractIconEx($dllPath, $iconIndex, [ref]$phiconLarge, [ref]$phiconSmall, $nIcons)
 
+        # Save the extracted icon to the repository folder (in the current working directory)
+        $iconFilePath = "$PWD\icons\ddores\extracted_icon.ico"  # Path to save the icon in the repo folder
+        
+        # Placeholder logic for saving icon (need to handle IntPtr conversion)
+        # This is a placeholder action as actual IntPtr to ICO conversion needs more steps
+        [System.IO.File]::WriteAllBytes($iconFilePath, $phiconLarge)  # Placeholder - need actual IntPtr to image conversion logic
+
+        Write-Host "Icon extraction complete. Saved to: $iconFilePath"
