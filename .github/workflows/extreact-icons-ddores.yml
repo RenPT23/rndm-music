@@ -16,8 +16,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up PowerShell
-        uses: actions/setup-powershell@v1
+      - name: Install PowerShell
+        uses: cakhanif/action-install-powershell@v1  # Corrected to use this action
 
       - name: Extract Icons from ddores.dll
         shell: pwsh
