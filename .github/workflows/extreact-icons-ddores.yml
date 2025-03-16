@@ -26,41 +26,25 @@ jobs:
           using System;
           using System.Runtime.InteropServices;
 
-          public class Ddores_Extract {
+          public class Shell32_Extract {
+
             [DllImport(
-               "ddores.dll",  # Ensure this DLL is available in the environment
+               "ddores.dll",  // Ensure this DLL is available in the environment
                EntryPoint        = "ExtractIconExW",
                CharSet           =  CharSet.Unicode,
                ExactSpelling     =  true,
                CallingConvention =  CallingConvention.StdCall)
             ]
+
              public static extern int ExtractIconEx(
                 string lpszFile          , // Name of the .exe or .dll that contains the icon
-                int    iconIndex         , // zero based index of first icon to extract. If iconIndex == 0 and phiconSmall == null, the number of icons is returned
+                int    iconIndex         , // zero based index of first icon to extract. If iconIndex == 0 and and phiconSmall == null and phiconSmall = null, the number of icons is returned
                 out    IntPtr phiconLarge,
                 out    IntPtr phiconSmall,
                 int    nIcons
             );
+
           }
           '@
-
-          # Add the type to the PowerShell runtime
           Add-Type -TypeDefinition $code
 
-          # Define your DLL path and icon extraction logic here
-          $dllPath = "C:\path\to\ddores.dll"  # Replace with actual path
-          $iconIndex = 0  # Example, extract the first icon
-          $nIcons = 5  # Number of icons to extract
-
-          # Prepare pointers for the extracted icons
-          $phiconLarge = [IntPtr]::Zero
-          $phiconSmall = [IntPtr]::Zero
-
-          # Call the ExtractIconEx function
-          $result = [Ddores_Extract]::ExtractIconEx($dllPath, $iconIndex, [ref]$phiconLarge, [ref]$phiconSmall, $nIcons)
-
-          if ($result -eq 0) {
-              Write-Host "Successfully extracted icons."
-          } else {
-              Write-Error "Error extracting icons."
-          }
